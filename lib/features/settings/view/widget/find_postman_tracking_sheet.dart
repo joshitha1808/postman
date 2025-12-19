@@ -138,8 +138,9 @@ class FindPostmanTrackingSheet extends StatelessWidget {
                               Text(
                                 'On route with your parcel',
                                 style: theme.textTheme.bodySmall?.copyWith(
-                                  color: theme.colorScheme.onSurface
-                                      .withValues(alpha: 0.65),
+                                  color: theme.colorScheme.onSurface.withValues(
+                                    alpha: 0.65,
+                                  ),
                                 ),
                               ),
                             ],
@@ -177,8 +178,9 @@ class FindPostmanTrackingSheet extends StatelessWidget {
                             Text(
                               'Registered',
                               style: theme.textTheme.labelLarge?.copyWith(
-                                color: theme.colorScheme.onSurface
-                                    .withValues(alpha: 0.7),
+                                color: theme.colorScheme.onSurface.withValues(
+                                  alpha: 0.7,
+                                ),
                                 fontWeight: FontWeight.w700,
                               ),
                             ),
@@ -189,7 +191,10 @@ class FindPostmanTrackingSheet extends StatelessWidget {
                         const SizedBox(height: 6),
                         const KeyValueRow(label: 'Status', value: 'In transit'),
                         const SizedBox(height: 6),
-                        const KeyValueRow(label: 'ETA', value: 'Today, 6:00 PM'),
+                        const KeyValueRow(
+                          label: 'ETA',
+                          value: 'Today, 6:00 PM',
+                        ),
                       ],
                     ),
                   ),
@@ -242,10 +247,7 @@ class TrackingTimeline extends StatelessWidget {
       child: Column(
         children: [
           for (int i = 0; i < events.length; i++)
-            _TimelineRow(
-              event: events[i],
-              isLast: i == events.length - 1,
-            ),
+            _TimelineRow(event: events[i], isLast: i == events.length - 1),
         ],
       ),
     );
@@ -321,8 +323,9 @@ class _TimelineRow extends StatelessWidget {
                     Text(
                       event.time,
                       style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurface
-                            .withValues(alpha: 0.6),
+                        color: theme.colorScheme.onSurface.withValues(
+                          alpha: 0.6,
+                        ),
                         fontWeight: FontWeight.w700,
                       ),
                     ),
@@ -333,7 +336,9 @@ class _TimelineRow extends StatelessWidget {
                   Text(
                     event.subtitle!,
                     style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurface.withValues(alpha: 0.65),
+                      color: theme.colorScheme.onSurface.withValues(
+                        alpha: 0.65,
+                      ),
                     ),
                   ),
                 ],
