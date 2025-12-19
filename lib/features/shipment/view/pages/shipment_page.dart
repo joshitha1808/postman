@@ -1,124 +1,44 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:postman/features/delivery/model/delivery_enums.dart';
+import 'package:postman/features/delivery/model/parcel.dart';
+import 'package:postman/features/delivery/viewmodel/delivery_provider.dart';
 
 part '../widgets/shipment_widgets.dart';
 
 // =========================
-// Models
+// Filter Enum
 // =========================
 
-enum ShipmentStatus { all, inDelivery, delivered, canceled }
+enum ShipmentFilter { all, outForDelivery, delivered, failed }
 
-class ShipmentModel {
-  const ShipmentModel({
-    required this.title,
-    required this.trackingId,
-    required this.status,
-    required this.destination,
-    required this.weightKg,
-    required this.estimatedArrival,
-  });
-
-  final String title;
-  final String trackingId;
-  final ShipmentStatus status;
-  final String destination;
-  final int weightKg;
-  final DateTime estimatedArrival;
-}
-
-// =========================
-// ViewModel
-// =========================
-
-class ShipmentViewModel extends ChangeNotifier {
-  ShipmentViewModel() : _shipments = List.unmodifiable(_seedShipments);
-
-  static final List<ShipmentModel> _seedShipments = <ShipmentModel>[
-    ShipmentModel(
-      title: 'Nintendo Switch Lite',
-      trackingId: '23d45e6ef78',
-      status: ShipmentStatus.inDelivery,
-      destination: 'Jakarta',
-      weightKg: 5,
-      estimatedArrival: DateTime(2025, 10, 29),
-    ),
-    ShipmentModel(
-      title: 'Playstation 5 Limited',
-      trackingId: '87f6e54d32',
-      status: ShipmentStatus.canceled,
-      destination: 'Bandung',
-      weightKg: 10,
-      estimatedArrival: DateTime(2025, 8, 19),
-    ),
-    ShipmentModel(
-      title: 'Xbox Series S Console',
-      trackingId: '03a4d1a9c2',
-      status: ShipmentStatus.delivered,
-      destination: 'Surabaya',
-      weightKg: 4,
-      estimatedArrival: DateTime(2025, 6, 8),
-    ),
-    ShipmentModel(
-      title: 'Nintendo Switch Pro Controller',
-      trackingId: '55b2c1d07f',
-      status: ShipmentStatus.inDelivery,
-      destination: 'Bogor',
-      weightKg: 2,
-      estimatedArrival: DateTime(2025, 12, 23),
-    ),
-  ];
-
-  final List<ShipmentModel> _shipments;
-  ShipmentStatus _selected = ShipmentStatus.all;
-
-  List<ShipmentModel> get shipments => _shipments;
-  ShipmentStatus get selectedStatus => _selected;
-
-  List<ShipmentModel> get filteredShipments {
-    if (_selected == ShipmentStatus.all) return _shipments;
-    return _shipments
-        .where((s) => s.status == _selected)
-        .toList(growable: false);
-  }
-
-  void selectTab(ShipmentStatus? status) {
-    final next = status ?? ShipmentStatus.all;
-    if (next == _selected) return;
-    _selected = next;
-    notifyListeners();
-  }
-
-  String statusLabel(ShipmentStatus status) {
-    switch (status) {
-      case ShipmentStatus.all:
+extension ShipmentFilterX on ShipmentFilter {
+  String get label {
+    switch (this) {
+      case ShipmentFilter.all:
         return 'All';
-      case ShipmentStatus.inDelivery:
+      case ShipmentFilter.outForDelivery:
         return 'In Delivery';
-      case ShipmentStatus.delivered:
+      case ShipmentFilter.delivered:
         return 'Delivered';
-      case ShipmentStatus.canceled:
-        return 'Canceled';
+      case ShipmentFilter.failed:
+        return 'Failed';
     }
   }
 
-  String formatDate(DateTime date) {
-    const months = <String>[
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec',
-    ];
-    final month = months[date.month - 1];
-    return '$month ${date.day}, ${date.year}';
+  /// Convert to DeliveryStatus for filtering
+  DeliveryStatus? get toDeliveryStatus {
+    switch (this) {
+      case ShipmentFilter.all:
+        return null;
+      case ShipmentFilter.outForDelivery:
+        return DeliveryStatus.outForDelivery;
+      case ShipmentFilter.delivered:
+        return DeliveryStatus.delivered;
+      case ShipmentFilter.failed:
+        return DeliveryStatus.failed;
+    }
   }
 }
 
@@ -126,38 +46,49 @@ class ShipmentViewModel extends ChangeNotifier {
 // View
 // =========================
 
-class ShipmentView extends StatefulWidget {
-  const ShipmentView({super.key});
+class ShipmentPage extends ConsumerStatefulWidget {
+  const ShipmentPage({super.key});
 
   @override
-  State<ShipmentView> createState() => _ShipmentViewState();
+  ConsumerState<ShipmentPage> createState() => _ShipmentPageState();
 }
 
-class _ShipmentViewState extends State<ShipmentView> {
-  late final ShipmentViewModel _viewModel;
+class _ShipmentPageState extends ConsumerState<ShipmentPage> {
+  ShipmentFilter _selectedFilter = ShipmentFilter.all;
 
-  @override
-  void initState() {
-    super.initState();
-    _viewModel = ShipmentViewModel()..addListener(_onVmChanged);
+  List<Parcel> _filterParcels(List<Parcel> parcels) {
+    if (_selectedFilter == ShipmentFilter.all) {
+      return parcels;
+    }
+
+    final status = _selectedFilter.toDeliveryStatus;
+    if (status == null) return parcels;
+
+    // For "In Delivery", include both pending and out_for_delivery
+    if (_selectedFilter == ShipmentFilter.outForDelivery) {
+      return parcels
+          .where(
+            (p) =>
+                p.status == DeliveryStatus.pending ||
+                p.status == DeliveryStatus.outForDelivery,
+          )
+          .toList();
+    }
+
+    return parcels.where((p) => p.status == status).toList();
   }
 
-  @override
-  void dispose() {
-    _viewModel.removeListener(_onVmChanged);
-    _viewModel.dispose();
-    super.dispose();
-  }
-
-  void _onVmChanged() {
-    if (!mounted) return;
-    setState(() {});
+  void _onFilterSelected(ShipmentFilter filter) {
+    setState(() {
+      _selectedFilter = filter;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     final colorScheme = Theme.of(context).colorScheme;
+    final deliveryState = ref.watch(deliveryNotifierProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -165,27 +96,21 @@ class _ShipmentViewState extends State<ShipmentView> {
         elevation: 0,
         centerTitle: true,
         title: Text(
-          'Shipment',
+          'Shipments',
           style: textTheme.titleMedium?.copyWith(
             fontWeight: FontWeight.w800,
             fontSize: 18,
             color: colorScheme.onSurface,
           ),
         ),
-        leadingWidth: 64,
-        leading: Padding(
-          padding: const EdgeInsets.only(left: 16),
-          child: _RoundIconButton(
-            icon: Icons.arrow_back_ios_new_rounded,
-            onTap: () {},
-          ),
-        ),
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 16),
             child: _RoundIconButton(
-              icon: Icons.more_horiz_rounded,
-              onTap: () {},
+              icon: Icons.refresh_rounded,
+              onTap: () {
+                ref.read(deliveryNotifierProvider.notifier).loadDeliveries();
+              },
             ),
           ),
         ],
@@ -196,34 +121,82 @@ class _ShipmentViewState extends State<ShipmentView> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             ShipmentFilterChips(
-              selected: _viewModel.selectedStatus,
-              onSelected: (status) => _viewModel.selectTab(status),
+              selected: _selectedFilter,
+              onSelected: _onFilterSelected,
             ),
             const SizedBox(height: 18),
-            Expanded(
-              child: ListView.builder(
-                padding: const EdgeInsets.only(bottom: 16),
-                itemCount: _viewModel.filteredShipments.length,
-                itemBuilder: (context, index) {
-                  final shipment = _viewModel.filteredShipments[index];
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 16),
-                    child: ShipmentCard(
-                      shipment: shipment,
-                      viewModel: _viewModel,
-                    ),
-                  );
-                },
-              ),
-            ),
+            Expanded(child: _buildContent(deliveryState, colorScheme)),
           ],
         ),
       ),
     );
   }
-}
 
-/// Back-compat for existing app navigation.
-class ShipmentPage extends ShipmentView {
-  const ShipmentPage({super.key});
+  Widget _buildContent(DeliveryListState state, ColorScheme colorScheme) {
+    if (state.isLoading && state.deliveryList == null) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (state.errorMessage != null && state.deliveryList == null) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.error_outline, size: 48, color: colorScheme.error),
+            const SizedBox(height: 16),
+            Text(state.errorMessage!, textAlign: TextAlign.center),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: () {
+                ref.read(deliveryNotifierProvider.notifier).loadDeliveries();
+              },
+              child: const Text('Retry'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final parcels = state.deliveryList?.parcels ?? [];
+    final filteredParcels = _filterParcels(parcels);
+
+    if (filteredParcels.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.inbox_outlined,
+              size: 64,
+              color: colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'No shipments found',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                color: colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return RefreshIndicator(
+      onRefresh: () async {
+        await ref.read(deliveryNotifierProvider.notifier).loadDeliveries();
+      },
+      child: ListView.builder(
+        padding: const EdgeInsets.only(bottom: 16),
+        itemCount: filteredParcels.length,
+        itemBuilder: (context, index) {
+          final parcel = filteredParcels[index];
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 16),
+            child: ShipmentCard(parcel: parcel),
+          );
+        },
+      ),
+    );
+  }
 }
