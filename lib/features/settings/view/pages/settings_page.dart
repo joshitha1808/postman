@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 import 'package:postman/features/settings/view/widget/duty_status_card.dart';
+import 'package:postman/features/settings/view/pages/find_postman_page.dart';
 import 'package:postman/features/settings/view/widget/performance_stats_card.dart';
 import 'package:postman/features/settings/view/widget/settings_tile.dart';
 
@@ -199,6 +200,28 @@ class _SettingsPageState extends State<SettingsPage> {
                       subtitle: 'English',
                       iconColor: Colors.green,
                       onTap: () => _showLanguagePicker(context),
+                      showDivider: false,
+                    ),
+                  ],
+                ),
+              ),
+
+              // Tracking
+              SliverToBoxAdapter(
+                child: SettingsSection(
+                  title: 'TRACKING',
+                  children: [
+                    SettingsTile(
+                      icon: Iconsax.location,
+                      title: 'Find Postman',
+                      subtitle: 'Track your postman in real-time',
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => const FindPostmanPage(),
+                          ),
+                        );
+                      },
                       showDivider: false,
                     ),
                   ],
