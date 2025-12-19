@@ -577,7 +577,7 @@ packages:
     source: hosted
     version: "0.6.7"
   json_annotation:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: json_annotation
       sha256: "1ce844379ca14835a50d2f019a3099f419082cfdd231cd86a142af94dd5c6bb1"
@@ -681,10 +681,18 @@ packages:
     source: hosted
     version: "0.5.0"
   objectbox:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: objectbox
       sha256: "25c2e24b417d938decb5598682dc831bc6a21856eaae65affbc57cfad326808d"
+      url: "https://pub.dev"
+    source: hosted
+    version: "4.3.0"
+  objectbox_flutter_libs:
+    dependency: "direct main"
+    description:
+      name: objectbox_flutter_libs
+      sha256: "574b0233ba79a7159fca9049c67974f790a2180b6141d4951112b20bd146016a"
       url: "https://pub.dev"
     source: hosted
     version: "4.3.0"
@@ -1070,7 +1078,7 @@ packages:
     source: hosted
     version: "0.7.6"
   timezone:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: timezone
       sha256: dd14a3b83cfd7cb19e7888f1cbc20f258b8d71b54c06f79ac585f14093a287d1
