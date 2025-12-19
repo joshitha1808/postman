@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
+import 'package:postman/features/home/view/pages/scan_page.dart';
 import 'package:postman/features/home/view/widgets/delivery_stat_card.dart';
 import 'package:postman/features/home/view/widgets/delivery_task_card.dart';
 import 'package:postman/features/home/view/widgets/quick_action_button.dart';
@@ -282,6 +283,12 @@ class _HomePageState extends State<HomePage> {
                                 color: theme.colorScheme.primary,
                                 onTap: () {
                                   // Open scanner
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (builder) => ScanPage(),
+                                    ),
+                                  );
                                 },
                               ),
                             ),
@@ -392,7 +399,10 @@ class _HomePageState extends State<HomePage> {
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
-          // Quick scan action
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (builder) => ScanPage()),
+          );
         },
         icon: const Icon(Iconsax.scan_barcode),
         label: const Text('Scan Package'),
