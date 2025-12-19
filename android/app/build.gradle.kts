@@ -5,6 +5,18 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+import java.io.FileInputStream
+import java.util.Properties
+
+fun readLocalProperty(rootProject: Project, name: String): String? {
+    val file = rootProject.file("local.properties")
+    if (!file.exists()) return null
+
+    val props = Properties()
+    FileInputStream(file).use { props.load(it) }
+    return props.getProperty(name)
+}
+
 android {
     namespace = "com.example.postman"
     compileSdk = flutter.compileSdkVersion
@@ -30,6 +42,9 @@ android {
         versionCode = flutter.versionCode
         versionName = flutter.versionName
         multiDexEnabled = true
+
+        manifestPlaceholders["MAPS_API_KEY"] =
+            readLocalProperty(rootProject, "MAPS_API_KEY") ?: "YOUR_ANDROID_MAPS_API_KEY"
     }
 
     buildTypes {

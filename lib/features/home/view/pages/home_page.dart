@@ -12,6 +12,7 @@ import 'package:postman/features/home/view/widgets/delivery_stat_card.dart';
 import 'package:postman/features/home/view/widgets/delivery_task_card.dart';
 import 'package:postman/features/home/view/widgets/quick_action_button.dart';
 import 'package:postman/features/home/view/widgets/route_info_card.dart';
+import 'package:postman/features/home/view/pages/live_map_page.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class HomePage extends ConsumerStatefulWidget {
@@ -540,6 +541,28 @@ class _HomePageState extends ConsumerState<HomePage> {
                   ),
 
                 // Route Info Card
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+                    child: RouteInfoCard(
+                      totalStops: _todaysTasks.length,
+                      completedStops: deliveredCount,
+                      estimatedDistance: '12.5 km',
+                      estimatedTime: '2h 30m',
+                      nextStop: 'Rajesh Kumar - MG Road, Sector 18',
+                      isRouteActive: _isRouteActive,
+                      onStartRoute: () {
+                        setState(() {
+                          _isRouteActive = !_isRouteActive;
+                        });
+                      },
+                      onViewRoute: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => const LiveMapPage(),
+                          ),
+                        );
+                      },
                 if (!deliveryState.isLoading && deliveryList != null)
                   SliverToBoxAdapter(
                     child: Padding(

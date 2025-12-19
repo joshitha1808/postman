@@ -1,0 +1,2 @@
+// Generated from .env by tooling/sync_maps_keys.sh
+MAPS_API_KEY=YOUR_IOS_MAPS_API_KEY
