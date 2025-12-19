@@ -7,8 +7,8 @@ class ShipmentFilterChips extends StatelessWidget {
     required this.onSelected,
   });
 
-  final ShipmentStatus selected;
-  final ValueChanged<ShipmentStatus> onSelected;
+  final ShipmentFilter selected;
+  final ValueChanged<ShipmentFilter> onSelected;
 
   @override
   Widget build(BuildContext context) {
@@ -20,34 +20,34 @@ class ShipmentFilterChips extends StatelessWidget {
         children: [
           _Chip(
             label: 'All',
-            isSelected: selected == ShipmentStatus.all,
+            isSelected: selected == ShipmentFilter.all,
             selectedBackground: colorScheme.primaryContainer,
             selectedForeground: colorScheme.onPrimaryContainer,
-            onTap: () => onSelected(ShipmentStatus.all),
+            onTap: () => onSelected(ShipmentFilter.all),
           ),
           const SizedBox(width: 12),
           _Chip(
             label: 'In Delivery',
-            isSelected: selected == ShipmentStatus.inDelivery,
+            isSelected: selected == ShipmentFilter.outForDelivery,
             selectedBackground: colorScheme.tertiaryContainer,
             selectedForeground: colorScheme.onTertiaryContainer,
-            onTap: () => onSelected(ShipmentStatus.inDelivery),
+            onTap: () => onSelected(ShipmentFilter.outForDelivery),
           ),
           const SizedBox(width: 12),
           _Chip(
             label: 'Delivered',
-            isSelected: selected == ShipmentStatus.delivered,
+            isSelected: selected == ShipmentFilter.delivered,
             selectedBackground: colorScheme.secondaryContainer,
             selectedForeground: colorScheme.onSecondaryContainer,
-            onTap: () => onSelected(ShipmentStatus.delivered),
+            onTap: () => onSelected(ShipmentFilter.delivered),
           ),
           const SizedBox(width: 12),
           _Chip(
-            label: 'Cancel',
-            isSelected: selected == ShipmentStatus.canceled,
+            label: 'Failed',
+            isSelected: selected == ShipmentFilter.failed,
             selectedBackground: colorScheme.errorContainer,
             selectedForeground: colorScheme.onErrorContainer,
-            onTap: () => onSelected(ShipmentStatus.canceled),
+            onTap: () => onSelected(ShipmentFilter.failed),
           ),
         ],
       ),
@@ -56,23 +56,17 @@ class ShipmentFilterChips extends StatelessWidget {
 }
 
 class ShipmentCard extends StatelessWidget {
-  const ShipmentCard({
-    super.key,
-    required this.shipment,
-    required this.viewModel,
-  });
+  const ShipmentCard({super.key, required this.parcel});
 
-  final ShipmentModel shipment;
-  final ShipmentViewModel viewModel;
+  final Parcel parcel;
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     final colorScheme = Theme.of(context).colorScheme;
 
-    final bool isCanceled = shipment.status == ShipmentStatus.canceled;
-    final statusLabel = viewModel.statusLabel(shipment.status);
-    final statusColors = _statusPillColors(shipment.status, colorScheme);
+    final statusColors = _statusPillColors(parcel.status, colorScheme);
+    final bool isFailed = parcel.status == DeliveryStatus.failed;
 
     return Card(
       elevation: 0,
@@ -91,7 +85,7 @@ class ShipmentCard extends StatelessWidget {
               children: [
                 Expanded(
                   child: Text(
-                    shipment.title,
+                    parcel.recipientName,
                     style: textTheme.titleMedium?.copyWith(
                       fontSize: 18,
                       fontWeight: FontWeight.w700,
@@ -112,7 +106,7 @@ class ShipmentCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(999),
                   ),
                   child: Text(
-                    statusLabel,
+                    parcel.status.displayLabel,
                     style: textTheme.labelMedium?.copyWith(
                       fontWeight: FontWeight.w600,
                       color: statusColors.foreground,
@@ -126,7 +120,7 @@ class ShipmentCard extends StatelessWidget {
               children: [
                 Expanded(
                   child: Text(
-                    '#${shipment.trackingId}',
+                    '#${parcel.trackingNumber}',
                     style: textTheme.bodySmall?.copyWith(
                       color: colorScheme.onSurfaceVariant,
                       fontWeight: FontWeight.w500,
@@ -145,7 +139,15 @@ class ShipmentCard extends StatelessWidget {
                     color: colorScheme.onSurfaceVariant,
                   ),
                   onPressed: () {
-                    Clipboard.setData(ClipboardData(text: shipment.trackingId));
+                    Clipboard.setData(
+                      ClipboardData(text: parcel.trackingNumber),
+                    );
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Tracking ID copied'),
+                        duration: Duration(seconds: 1),
+                      ),
+                    );
                   },
                   tooltip: 'Copy tracking id',
                 ),
@@ -154,14 +156,48 @@ class ShipmentCard extends StatelessWidget {
             const SizedBox(height: 10),
             Divider(height: 1, color: colorScheme.outlineVariant),
             const SizedBox(height: 12),
-            _InfoRow(label: 'Destination', value: shipment.destination),
+            _InfoRow(label: 'Address', value: parcel.recipientAddress),
             const SizedBox(height: 8),
-            _InfoRow(label: 'Package weight', value: '${shipment.weightKg} kg'),
+            _InfoRow(label: 'Pincode', value: parcel.recipientPincode),
             const SizedBox(height: 8),
-            _InfoRow(
-              label: 'Estimated arrival',
-              value: viewModel.formatDate(shipment.estimatedArrival),
-            ),
+            _InfoRow(label: 'Package weight', value: parcel.formattedWeight),
+            if (parcel.isCod) ...[
+              const SizedBox(height: 8),
+              _InfoRow(label: 'COD Amount', value: parcel.formattedCodAmount),
+            ],
+            if (parcel.priority == DeliveryPriority.urgent) ...[
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Priority',
+                      style: textTheme.bodySmall?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.red.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      'URGENT',
+                      style: textTheme.labelSmall?.copyWith(
+                        color: Colors.red,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
             const SizedBox(height: 16),
             Row(
               children: [
@@ -169,8 +205,12 @@ class ShipmentCard extends StatelessWidget {
                   child: SizedBox(
                     height: 48,
                     child: ElevatedButton.icon(
-                      onPressed: isCanceled ? null : () {},
-                      icon: Icon(Icons.inventory_2_outlined, size: 18),
+                      onPressed: isFailed
+                          ? null
+                          : () {
+                              // TODO: Navigate to tracking details
+                            },
+                      icon: const Icon(Icons.inventory_2_outlined, size: 18),
                       label: Text(
                         'Track',
                         style: textTheme.labelLarge?.copyWith(
@@ -185,7 +225,9 @@ class ShipmentCard extends StatelessWidget {
                   child: SizedBox(
                     height: 48,
                     child: OutlinedButton(
-                      onPressed: () {},
+                      onPressed: () {
+                        // TODO: Show parcel details bottom sheet
+                      },
                       style: OutlinedButton.styleFrom(
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(999),
@@ -220,8 +262,10 @@ class _InfoRow extends StatelessWidget {
     final textTheme = Theme.of(context).textTheme;
     final colorScheme = Theme.of(context).colorScheme;
     return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(
+        SizedBox(
+          width: 120,
           child: Text(
             label,
             style: textTheme.bodySmall?.copyWith(
@@ -231,11 +275,13 @@ class _InfoRow extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 12),
-        Text(
-          value,
-          style: textTheme.bodyMedium?.copyWith(
-            color: colorScheme.onSurface,
-            fontWeight: FontWeight.w700,
+        Expanded(
+          child: Text(
+            value,
+            style: textTheme.bodyMedium?.copyWith(
+              color: colorScheme.onSurface,
+              fontWeight: FontWeight.w700,
+            ),
           ),
         ),
       ],
@@ -295,26 +341,27 @@ class _StatusPillColors {
 }
 
 _StatusPillColors _statusPillColors(
-  ShipmentStatus status,
+  DeliveryStatus status,
   ColorScheme colorScheme,
 ) {
   switch (status) {
-    case ShipmentStatus.all:
+    case DeliveryStatus.pending:
       return _StatusPillColors(
         background: colorScheme.primaryContainer,
         foreground: colorScheme.onPrimaryContainer,
       );
-    case ShipmentStatus.inDelivery:
+    case DeliveryStatus.outForDelivery:
       return _StatusPillColors(
         background: colorScheme.tertiaryContainer,
         foreground: colorScheme.onTertiaryContainer,
       );
-    case ShipmentStatus.delivered:
+    case DeliveryStatus.delivered:
       return _StatusPillColors(
         background: colorScheme.secondaryContainer,
         foreground: colorScheme.onSecondaryContainer,
       );
-    case ShipmentStatus.canceled:
+    case DeliveryStatus.failed:
+    case DeliveryStatus.rescheduled:
       return _StatusPillColors(
         background: colorScheme.errorContainer,
         foreground: colorScheme.onErrorContainer,
