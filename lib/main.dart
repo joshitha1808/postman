@@ -1,11 +1,11 @@
-import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:postman/core/common/widgets/bottom_nav_bar.dart';
 import 'package:postman/core/theme/app_theme.dart';
 import 'package:postman/core/theme/app_theme_enum.dart';
+import 'package:postman/features/shipment/view/pages/shipment_page.dart';
+
+import 'package:flutter/material.dart';
 
 void main() {
-  runApp(ProviderScope(child: const MyApp()));
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
@@ -17,7 +17,7 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'Postman',
       theme: getThemeData(appTheme: AppTheme.blue, isDarkMode: false),
-      home: const BottomNavBar(),
+      home: const ShipmentView(),
     );
   }
 }
