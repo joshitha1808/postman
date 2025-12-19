@@ -61,7 +61,7 @@ class BottomNavBarState extends ConsumerState<BottomNavBar> {
             BottomNavigationBarItem(
               icon: _buildNavIcon(Iconsax.message_copy, 2),
               activeIcon: _buildActiveIcon(Iconsax.message, 2),
-              label: "Message",
+              label: "Chat",
             ),
             BottomNavigationBarItem(
               icon: _buildNavIcon(Iconsax.setting_copy, 3),
