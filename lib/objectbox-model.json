@@ -1,0 +1,71 @@
+{
+  "_note1": "KEEP THIS FILE! Check it into a version control system (VCS) like git.",
+  "_note2": "ObjectBox manages crucial IDs for your object model. See docs for details.",
+  "_note3": "If you have VCS merge conflicts, you must resolve them according to ObjectBox docs.",
+  "entities": [
+    {
+      "id": "1:5772733333875031082",
+      "lastPropertyId": "1:1266424538062731340",
+      "name": "User",
+      "properties": [
+        {
+          "id": "1:1266424538062731340",
+          "name": "id",
+          "type": 6,
+          "flags": 1
+        }
+      ],
+      "relations": []
+    },
+    {
+      "id": "2:7056457486196957483",
+      "lastPropertyId": "6:1163284175161897349",
+      "name": "UserPreferences",
+      "properties": [
+        {
+          "id": "1:4299130354644130489",
+          "name": "id",
+          "type": 6,
+          "flags": 1
+        },
+        {
+          "id": "2:7062943795853267034",
+          "name": "pfpPath",
+          "type": 9
+        },
+        {
+          "id": "3:2911148533700090304",
+          "name": "isPrivacyEnabled",
+          "type": 1
+        },
+        {
+          "id": "4:3174507558688439582",
+          "name": "isDarkModeEnabled",
+          "type": 1
+        },
+        {
+          "id": "5:4102840797353475396",
+          "name": "appTheme",
+          "type": 9
+        },
+        {
+          "id": "6:1163284175161897349",
+          "name": "isFirstLaunch",
+          "type": 1
+        }
+      ],
+      "relations": []
+    }
+  ],
+  "lastEntityId": "2:7056457486196957483",
+  "lastIndexId": "0:0",
+  "lastRelationId": "0:0",
+  "lastSequenceId": "0:0",
+  "modelVersion": 5,
+  "modelVersionParserMinimum": 5,
+  "retiredEntityUids": [],
+  "retiredIndexUids": [],
+  "retiredPropertyUids": [],
+  "retiredRelationUids": [],
+  "version": 1
+}
