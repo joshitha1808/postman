@@ -12,7 +12,7 @@ import 'package:postman/features/home/view/widgets/delivery_stat_card.dart';
 import 'package:postman/features/home/view/widgets/delivery_task_card.dart';
 import 'package:postman/features/home/view/widgets/quick_action_button.dart';
 import 'package:postman/features/home/view/widgets/route_info_card.dart';
-import 'package:postman/features/home/view/pages/live_map_page.dart';
+import 'package:postman/features/pod/view/pages/pod_capture_page.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class HomePage extends ConsumerStatefulWidget {
@@ -130,12 +130,24 @@ class _HomePageState extends ConsumerState<HomePage> {
               title: const Text('Take Photo'),
               subtitle: const Text('Capture proof of delivery'),
               trailing: const Icon(Iconsax.arrow_right_3),
-              onTap: () {
+              onTap: () async {
                 Navigator.pop(context);
-                // TODO: Open camera for POD
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('POD capture coming soon...')),
+                final result = await Navigator.push<bool>(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => PodCapturePage(
+                      parcelId: parcel.id,
+                      trackingNumber: parcel.trackingNumber,
+                      recipientName: parcel.recipientName,
+                      isCod: parcel.isCod,
+                      codAmount: parcel.codAmount,
+                    ),
+                  ),
                 );
+                if (result == true && mounted) {
+                  // Delivery confirmed via POD, refresh list
+                  ref.read(deliveryNotifierProvider.notifier).loadDeliveries();
+                }
               },
             ),
             ListTile(
@@ -150,14 +162,24 @@ class _HomePageState extends ConsumerState<HomePage> {
               title: const Text('Collect Signature'),
               subtitle: const Text('Get recipient signature'),
               trailing: const Icon(Iconsax.arrow_right_3),
-              onTap: () {
+              onTap: () async {
                 Navigator.pop(context);
-                // TODO: Open signature pad
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Signature capture coming soon...'),
+                final result = await Navigator.push<bool>(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => PodCapturePage(
+                      parcelId: parcel.id,
+                      trackingNumber: parcel.trackingNumber,
+                      recipientName: parcel.recipientName,
+                      isCod: parcel.isCod,
+                      codAmount: parcel.codAmount,
+                    ),
                   ),
                 );
+                if (result == true && mounted) {
+                  // Delivery confirmed via POD, refresh list
+                  ref.read(deliveryNotifierProvider.notifier).loadDeliveries();
+                }
               },
             ),
             if (parcel.isCod)
@@ -200,15 +222,24 @@ class _HomePageState extends ConsumerState<HomePage> {
                 const SizedBox(width: 16),
                 Expanded(
                   child: FilledButton(
-                    onPressed: () {
+                    onPressed: () async {
+                      // Capture scaffold messenger before popping
+                      final scaffoldMessenger = ScaffoldMessenger.of(context);
                       Navigator.pop(context);
-                      // TODO: Implement full POD flow
-                      ScaffoldMessenger.of(context).showSnackBar(
+
+                      // Call API to mark as delivered
+                      final success = await ref
+                          .read(deliveryNotifierProvider.notifier)
+                          .markDelivered(parcel.id);
+
+                      scaffoldMessenger.showSnackBar(
                         SnackBar(
                           content: Text(
-                            'Delivery confirmed for ${parcel.trackingNumber}',
+                            success
+                                ? 'Delivery confirmed for ${parcel.trackingNumber}'
+                                : 'Failed to confirm delivery',
                           ),
-                          backgroundColor: Colors.green,
+                          backgroundColor: success ? Colors.green : Colors.red,
                         ),
                       );
                     },
@@ -541,28 +572,6 @@ class _HomePageState extends ConsumerState<HomePage> {
                   ),
 
                 // Route Info Card
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-                    child: RouteInfoCard(
-                      totalStops: _todaysTasks.length,
-                      completedStops: deliveredCount,
-                      estimatedDistance: '12.5 km',
-                      estimatedTime: '2h 30m',
-                      nextStop: 'Rajesh Kumar - MG Road, Sector 18',
-                      isRouteActive: _isRouteActive,
-                      onStartRoute: () {
-                        setState(() {
-                          _isRouteActive = !_isRouteActive;
-                        });
-                      },
-                      onViewRoute: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => const LiveMapPage(),
-                          ),
-                        );
-                      },
                 if (!deliveryState.isLoading && deliveryList != null)
                   SliverToBoxAdapter(
                     child: Padding(
