@@ -5,6 +5,7 @@ import 'dart:io';
 
 import 'package:fpdart/fpdart.dart';
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 import 'package:postman/core/error/failure.dart';
 import 'package:postman/core/services/secure_store_service.dart';
 
@@ -97,6 +98,107 @@ class ApiClient {
       log('POST (form): $uri');
 
       final response = await _client.post(uri, headers: headers, body: body);
+      return _handleResponse(response, fromJson);
+    });
+  }
+
+  /// Performs a multipart POST request for file uploads
+  Future<Either<Failure, T>> postMultipart<T>(
+    String url, {
+    required T Function(Map<String, dynamic>) fromJson,
+    required File file,
+    String fileField = 'file',
+    Map<String, String>? fields,
+    bool requiresAuth = true,
+  }) async {
+    return _executeRequest(() async {
+      final uri = Uri.parse(url);
+
+      log('POST (multipart): $uri');
+
+      final request = http.MultipartRequest('POST', uri);
+
+      // Add auth header
+      if (requiresAuth) {
+        final token = await _secureStorage.getToken();
+        if (token != null) {
+          request.headers['Authorization'] = 'Bearer $token';
+        }
+      }
+
+      // Determine content type from file extension
+      final extension = file.path.split('.').last.toLowerCase();
+      final mimeType = switch (extension) {
+        'jpg' || 'jpeg' => 'image/jpeg',
+        'png' => 'image/png',
+        'gif' => 'image/gif',
+        'webp' => 'image/webp',
+        _ => 'application/octet-stream',
+      };
+
+      // Add file with content type
+      request.files.add(
+        await http.MultipartFile.fromPath(
+          fileField,
+          file.path,
+          contentType: MediaType.parse(mimeType),
+        ),
+      );
+
+      // Add fields
+      if (fields != null) {
+        request.fields.addAll(fields);
+      }
+
+      final streamedResponse = await _client.send(request);
+      final response = await http.Response.fromStream(streamedResponse);
+      return _handleResponse(response, fromJson);
+    });
+  }
+
+  /// Performs a multipart POST request for uploading bytes (like signature)
+  Future<Either<Failure, T>> postMultipartBytes<T>(
+    String url, {
+    required T Function(Map<String, dynamic>) fromJson,
+    required List<int> bytes,
+    required String filename,
+    String fileField = 'file',
+    String contentType = 'image/png',
+    Map<String, String>? fields,
+    bool requiresAuth = true,
+  }) async {
+    return _executeRequest(() async {
+      final uri = Uri.parse(url);
+
+      log('POST (multipart bytes): $uri');
+
+      final request = http.MultipartRequest('POST', uri);
+
+      // Add auth header
+      if (requiresAuth) {
+        final token = await _secureStorage.getToken();
+        if (token != null) {
+          request.headers['Authorization'] = 'Bearer $token';
+        }
+      }
+
+      // Add bytes as file with content type
+      request.files.add(
+        http.MultipartFile.fromBytes(
+          fileField,
+          bytes,
+          filename: filename,
+          contentType: MediaType.parse(contentType),
+        ),
+      );
+
+      // Add fields
+      if (fields != null) {
+        request.fields.addAll(fields);
+      }
+
+      final streamedResponse = await _client.send(request);
+      final response = await http.Response.fromStream(streamedResponse);
       return _handleResponse(response, fromJson);
     });
   }
