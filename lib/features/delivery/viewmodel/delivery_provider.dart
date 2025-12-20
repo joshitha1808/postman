@@ -190,6 +190,18 @@ class DeliveryNotifier extends _$DeliveryNotifier {
     );
   }
 
+  /// Mark a parcel as delivered
+  Future<bool> markDelivered(
+    String parcelId, {
+    double? lat,
+    double? lng,
+  }) async {
+    return updateParcelStatus(
+      parcelId: parcelId,
+      request: StatusUpdateRequest.delivered(lat: lat, lng: lng),
+    );
+  }
+
   /// Mark a parcel as failed
   Future<bool> markFailed(
     String parcelId, {

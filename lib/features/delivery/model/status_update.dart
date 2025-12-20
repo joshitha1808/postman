@@ -35,6 +35,21 @@ abstract class StatusUpdateRequest with _$StatusUpdateRequest {
     );
   }
 
+  /// Create a status update for DELIVERED
+  factory StatusUpdateRequest.delivered({
+    double? lat,
+    double? lng,
+    String? clientUpdateId,
+  }) {
+    return StatusUpdateRequest(
+      newStatus: DeliveryStatus.delivered.value,
+      lat: lat,
+      lng: lng,
+      clientTimestamp: DateTime.now().toUtc().toIso8601String(),
+      clientUpdateId: clientUpdateId,
+    );
+  }
+
   /// Create a status update for FAILED
   factory StatusUpdateRequest.failed({
     required FailureReason reason,

@@ -26,7 +26,7 @@ final deliveryRepositoryProvider = Provider<DeliveryRepository>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef DeliveryRepositoryRef = ProviderRef<DeliveryRepository>;
-String _$deliveryNotifierHash() => r'8de766d01d5973929d4fc4aaa18c6c1bced8fbf7';
+String _$deliveryNotifierHash() => r'e31ef6693b7902f45792846e3b05996de1bc9022';
 
 /// Main ViewModel for delivery list operations
 ///
