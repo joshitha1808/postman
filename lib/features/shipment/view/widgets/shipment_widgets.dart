@@ -56,9 +56,10 @@ class ShipmentFilterChips extends StatelessWidget {
 }
 
 class ShipmentCard extends StatelessWidget {
-  const ShipmentCard({super.key, required this.parcel});
+  const ShipmentCard({super.key, required this.parcel, this.onViewDetails});
 
   final Parcel parcel;
+  final VoidCallback? onViewDetails;
 
   @override
   Widget build(BuildContext context) {
@@ -225,9 +226,7 @@ class ShipmentCard extends StatelessWidget {
                   child: SizedBox(
                     height: 48,
                     child: OutlinedButton(
-                      onPressed: () {
-                        // TODO: Show parcel details bottom sheet
-                      },
+                      onPressed: onViewDetails,
                       style: OutlinedButton.styleFrom(
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(999),
@@ -389,6 +388,297 @@ class _RoundIconButton extends StatelessWidget {
           width: 44,
           child: Icon(icon, size: 20, color: colorScheme.onSurface),
         ),
+      ),
+    );
+  }
+}
+
+/// Bottom sheet to show parcel details
+class ParcelDetailsSheet extends StatelessWidget {
+  const ParcelDetailsSheet({super.key, required this.parcel});
+
+  final Parcel parcel;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final textTheme = theme.textTheme;
+    final statusColors = _statusPillColors(parcel.status, colorScheme);
+
+    return Container(
+      decoration: BoxDecoration(
+        color: colorScheme.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Handle bar
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: colorScheme.outlineVariant,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            // Header
+            Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Parcel Details',
+                        style: textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '#${parcel.trackingNumber}',
+                        style: textTheme.bodyMedium?.copyWith(
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: statusColors.background,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Text(
+                    parcel.status.displayLabel,
+                    style: textTheme.labelMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: statusColors.foreground,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 24),
+
+            // Recipient Section
+            _DetailSection(
+              title: 'Recipient',
+              icon: Icons.person_outline,
+              children: [
+                _DetailRow(label: 'Name', value: parcel.recipientName),
+                if (parcel.recipientPhone != null)
+                  _DetailRow(label: 'Phone', value: parcel.recipientPhone!),
+                _DetailRow(label: 'Address', value: parcel.recipientAddress),
+                _DetailRow(label: 'Pincode', value: parcel.recipientPincode),
+              ],
+            ),
+
+            const SizedBox(height: 16),
+
+            // Package Section
+            _DetailSection(
+              title: 'Package',
+              icon: Icons.inventory_2_outlined,
+              children: [
+                if (parcel.parcelType != null)
+                  _DetailRow(label: 'Type', value: parcel.parcelType!),
+                _DetailRow(label: 'Weight', value: parcel.formattedWeight),
+                _DetailRow(
+                  label: 'Priority',
+                  value: parcel.priority.displayLabel.toUpperCase(),
+                  valueColor: parcel.priority == DeliveryPriority.urgent
+                      ? Colors.red
+                      : null,
+                ),
+                if (parcel.deliverySequence != null)
+                  _DetailRow(
+                    label: 'Delivery Sequence',
+                    value: '#${parcel.deliverySequence}',
+                  ),
+              ],
+            ),
+
+            if (parcel.isCod) ...[
+              const SizedBox(height: 16),
+              _DetailSection(
+                title: 'Cash on Delivery',
+                icon: Icons.payments_outlined,
+                children: [
+                  _DetailRow(
+                    label: 'Amount',
+                    value: parcel.formattedCodAmount,
+                    valueColor: Colors.green,
+                  ),
+                ],
+              ),
+            ],
+
+            if (parcel.hasValidCoordinates) ...[
+              const SizedBox(height: 16),
+              _DetailSection(
+                title: 'Location',
+                icon: Icons.location_on_outlined,
+                children: [
+                  _DetailRow(
+                    label: 'Coordinates',
+                    value:
+                        '${parcel.deliveryLat?.toStringAsFixed(6)}, ${parcel.deliveryLng?.toStringAsFixed(6)}',
+                  ),
+                ],
+              ),
+            ],
+
+            const SizedBox(height: 24),
+
+            // Actions
+            Row(
+              children: [
+                if (parcel.recipientPhone != null)
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () async {
+                        final uri = Uri.parse('tel:${parcel.recipientPhone}');
+                        if (await canLaunchUrl(uri)) {
+                          await launchUrl(uri);
+                        }
+                      },
+                      icon: const Icon(Icons.call_outlined, size: 18),
+                      label: const Text('Call'),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                    ),
+                  ),
+                if (parcel.recipientPhone != null) const SizedBox(width: 12),
+                if (parcel.hasValidCoordinates)
+                  Expanded(
+                    child: FilledButton.icon(
+                      onPressed: () async {
+                        final uri = Uri.parse(
+                          'https://www.google.com/maps/dir/?api=1&destination=${parcel.deliveryLat},${parcel.deliveryLng}',
+                        );
+                        if (await canLaunchUrl(uri)) {
+                          await launchUrl(
+                            uri,
+                            mode: LaunchMode.externalApplication,
+                          );
+                        }
+                      },
+                      icon: const Icon(Icons.navigation_outlined, size: 18),
+                      label: const Text('Navigate'),
+                      style: FilledButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+
+            const SizedBox(height: 16),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _DetailSection extends StatelessWidget {
+  const _DetailSection({
+    required this.title,
+    required this.icon,
+    required this.children,
+  });
+
+  final String title;
+  final IconData icon;
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, size: 18, color: colorScheme.primary),
+              const SizedBox(width: 8),
+              Text(
+                title,
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: colorScheme.primary,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          ...children,
+        ],
+      ),
+    );
+  }
+}
+
+class _DetailRow extends StatelessWidget {
+  const _DetailRow({required this.label, required this.value, this.valueColor});
+
+  final String label;
+  final String value;
+  final Color? valueColor;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 100,
+            child: Text(
+              label,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+                color: valueColor ?? colorScheme.onSurface,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

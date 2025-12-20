@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:postman/features/delivery/model/delivery_enums.dart';
 import 'package:postman/features/delivery/model/parcel.dart';
 import 'package:postman/features/delivery/viewmodel/delivery_provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 part '../widgets/shipment_widgets.dart';
 
@@ -193,9 +194,27 @@ class _ShipmentPageState extends ConsumerState<ShipmentPage> {
           final parcel = filteredParcels[index];
           return Padding(
             padding: const EdgeInsets.only(bottom: 16),
-            child: ShipmentCard(parcel: parcel),
+            child: ShipmentCard(
+              parcel: parcel,
+              onViewDetails: () => _showParcelDetails(context, parcel),
+            ),
           );
         },
+      ),
+    );
+  }
+
+  void _showParcelDetails(BuildContext context, Parcel parcel) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.7,
+        minChildSize: 0.5,
+        maxChildSize: 0.95,
+        builder: (context, scrollController) =>
+            ParcelDetailsSheet(parcel: parcel),
       ),
     );
   }
