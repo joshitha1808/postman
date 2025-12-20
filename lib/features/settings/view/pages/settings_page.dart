@@ -1,20 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
+import 'package:postman/features/auth/viewmodel/auth_provider.dart';
 import 'package:postman/features/settings/view/widget/duty_status_card.dart';
 import 'package:postman/features/settings/view/pages/find_postman_page.dart';
 import 'package:postman/features/settings/view/widget/performance_stats_card.dart';
 import 'package:postman/features/settings/view/widget/settings_tile.dart';
+import 'package:postman/features/settings/viewmodel/settings_provider.dart';
 
-class SettingsPage extends StatefulWidget {
+class SettingsPage extends ConsumerStatefulWidget {
   const SettingsPage({super.key});
 
   @override
-  State<SettingsPage> createState() => _SettingsPageState();
+  ConsumerState<SettingsPage> createState() => _SettingsPageState();
 }
 
-class _SettingsPageState extends State<SettingsPage> {
-  bool _isOnDuty = true;
+class _SettingsPageState extends ConsumerState<SettingsPage> {
   bool _notificationsEnabled = true;
   bool _vibrationAlerts = true;
   bool _darkMode = false;
@@ -22,6 +24,11 @@ class _SettingsPageState extends State<SettingsPage> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final authState = ref.watch(authNotifierProvider);
+    final dutyState = ref.watch(dutyNotifierProvider);
+
+    // Get user data from auth state
+    final user = authState is AuthStateAuthenticated ? authState.user : null;
 
     return Scaffold(
       body: AnnotatedRegion<SystemUiOverlayStyle>(
@@ -60,7 +67,7 @@ class _SettingsPageState extends State<SettingsPage> {
                     horizontal: 16,
                     vertical: 8,
                   ),
-                  child: _buildProfileHeader(context),
+                  child: _buildProfileHeader(context, user),
                 ),
               ),
 
@@ -72,14 +79,19 @@ class _SettingsPageState extends State<SettingsPage> {
                     vertical: 8,
                   ),
                   child: DutyStatusCard(
-                    isOnDuty: _isOnDuty,
-                    currentLocation: 'Connaught Place Post Office, Delhi',
-                    lastUpdated: '8:30 AM',
-                    onToggle: () {
-                      setState(() {
-                        _isOnDuty = !_isOnDuty;
-                      });
-                    },
+                    isOnDuty: dutyState.isOnDuty,
+                    currentLocation:
+                        user?.beatArea ??
+                        user?.postOfficeCode ??
+                        'Unknown Location',
+                    lastUpdated: dutyState.formattedLastUpdated,
+                    onToggle: dutyState.isLoading
+                        ? null
+                        : () {
+                            ref
+                                .read(dutyNotifierProvider.notifier)
+                                .toggleDuty();
+                          },
                     onLocationTap: () {
                       // Refresh location
                     },
@@ -90,11 +102,12 @@ class _SettingsPageState extends State<SettingsPage> {
               // Performance Stats
               SliverToBoxAdapter(
                 child: PerformanceStatsCard(
-                  todayDeliveries: 18,
-                  weeklyDeliveries: 127,
-                  successRate: 96.5,
-                  avgDeliveryTime: '12 min',
-                  codCollected: 15450,
+                  todayDeliveries: user?.todayStats?.delivered ?? 0,
+                  weeklyDeliveries:
+                      (user?.todayStats?.totalAssigned ?? 0) * 5, // Estimate
+                  successRate: _calculateSuccessRate(user?.todayStats),
+                  avgDeliveryTime: '12 min', // Not available from API yet
+                  codCollected: 3120, // Not available from API yet
                   onViewDetails: () {
                     // Navigate to detailed stats
                   },
@@ -293,8 +306,27 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  Widget _buildProfileHeader(BuildContext context) {
+  /// Calculate success rate from today stats
+  double _calculateSuccessRate(dynamic stats) {
+    if (stats == null) return 0.0;
+    final total = stats.totalAssigned ?? 0;
+    final delivered = stats.delivered ?? 0;
+    if (total == 0) return 0.0;
+    return (delivered / total) * 100;
+  }
+
+  Widget _buildProfileHeader(BuildContext context, dynamic user) {
     final theme = Theme.of(context);
+    final dutyState = ref.watch(dutyNotifierProvider);
+
+    // Get initials from name
+    final name = user?.name ?? 'Postman';
+    final initials = name
+        .split(' ')
+        .map((n) => n.isNotEmpty ? n[0] : '')
+        .take(2)
+        .join()
+        .toUpperCase();
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -312,13 +344,18 @@ class _SettingsPageState extends State<SettingsPage> {
               CircleAvatar(
                 radius: 36,
                 backgroundColor: theme.colorScheme.surfaceContainerLow,
-                child: Text(
-                  'PS',
-                  style: theme.textTheme.headlineSmall?.copyWith(
-                    color: theme.colorScheme.onPrimaryContainer,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
+                backgroundImage: user?.profilePhotoUrl != null
+                    ? NetworkImage(user!.profilePhotoUrl!)
+                    : null,
+                child: user?.profilePhotoUrl == null
+                    ? Text(
+                        initials,
+                        style: theme.textTheme.headlineSmall?.copyWith(
+                          color: theme.colorScheme.onPrimaryContainer,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      )
+                    : null,
               ),
               Positioned(
                 right: 0,
@@ -326,14 +363,18 @@ class _SettingsPageState extends State<SettingsPage> {
                 child: Container(
                   padding: const EdgeInsets.all(4),
                   decoration: BoxDecoration(
-                    color: Colors.green,
+                    color: dutyState.isOnDuty ? Colors.green : Colors.grey,
                     shape: BoxShape.circle,
                     border: Border.all(
                       color: theme.colorScheme.surface,
                       width: 2,
                     ),
                   ),
-                  child: const Icon(Icons.check, color: Colors.white, size: 12),
+                  child: Icon(
+                    dutyState.isOnDuty ? Icons.check : Icons.remove,
+                    color: Colors.white,
+                    size: 12,
+                  ),
                 ),
               ),
             ],
@@ -344,7 +385,7 @@ class _SettingsPageState extends State<SettingsPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Postman Singh',
+                  user?.name ?? 'Postman',
                   style: theme.textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),
@@ -362,7 +403,7 @@ class _SettingsPageState extends State<SettingsPage> {
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: Text(
-                        'ID: PO-DL-12345',
+                        'ID: ${user?.employeeId ?? 'N/A'}',
                         style: theme.textTheme.labelSmall?.copyWith(
                           color: theme.colorScheme.onPrimaryContainer,
                           fontWeight: FontWeight.w600,
@@ -373,7 +414,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Connaught Place Division, Delhi',
+                  user?.beatArea ?? user?.postOfficeCode ?? 'Unknown Location',
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                   ),
@@ -644,7 +685,7 @@ class _SettingsPageState extends State<SettingsPage> {
           FilledButton(
             onPressed: () {
               Navigator.pop(context);
-              // Handle logout
+              ref.read(authNotifierProvider.notifier).logout();
             },
             style: FilledButton.styleFrom(backgroundColor: Colors.red),
             child: const Text('Log Out'),
